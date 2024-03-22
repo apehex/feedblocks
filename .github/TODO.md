@@ -29,6 +29,8 @@
     - [ ] store in the database
 - [ ] normalize:
     - [ ] numbers as 4-byte binary word
+- [ ] compile:
+    - [ ] recreate the source project structure from the data saved in parquet
 
 ### Tokenization
 
