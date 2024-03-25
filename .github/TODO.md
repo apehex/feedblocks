@@ -22,15 +22,18 @@
 
 ### Preprocessing
 
-- [ ] check that the compilation of sources matches the creation bytecode
-- [ ] disassemble:
-    - [ ] creation binary code
-    - [ ] runtime binary code
-    - [ ] store in the database
+- [x] check that the compilation of sources matches the creation bytecode
+- [x] disassemble:
+    - [x] creation binary code
+    - [x] runtime binary code
+    - [x] store in the database
 - [ ] normalize:
-    - [ ] numbers as 4-byte binary word
+    - [ ] numbers as 32-byte binary word
+    - [ ] with / without comments?
+    - [ ] spaces / newlines
+    - [ ] identifiers?
 - [ ] compile:
-    - [ ] recreate the source project structure from the data saved in parquet
+    - [x] recreate the source project structure from the data saved in parquet
 
 ### Tokenization
 
@@ -50,3 +53,7 @@
     - [ ] identifiers / variables
     - [ ] indentation
 - [ ] encode / embed the **compiler version & args**
+
+### VAE
+
+- [ ] assembly
