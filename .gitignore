@@ -1,5 +1,9 @@
-# temp
+# env
+.python-version
 poetry.lock
+
+# temp
+__pycache__
 
 # secrets
 .env

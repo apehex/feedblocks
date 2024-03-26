@@ -1,9 +1,10 @@
 [tool.poetry]
+packages = [{include = "feedblocks"}]
 name = "feedblocks"
 version = "0.0.1"
 description = "pipeline to train NN on blockchain data"
 authors = ["apehex <apehex@protonmail.com>"]
-readme = "README.md"
+readme = ".github/README.md"
 
 [tool.poetry.dependencies]
 pyarrow = ">=15.0"
