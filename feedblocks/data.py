@@ -35,4 +35,14 @@ def tidy(path: str='data') -> None:
         __new = os.path.join(path, *__f)
         os.rename(__old, __new)
 
+def load(chain: str='ethereum', dataset: str='contracts', path: str=DATA_PATH, schemas: dict=SCHEMAS) -> pq.ParquetDataset:
+    __path = path.format(chain=chain, dataset=dataset)
+    __schema = schemas.get(dataset, None)
+    return pq.ParquetDataset(__path, schema=__schema)
+
+def save(table: pl.Table, chain: str='ethereum', dataset: str='contracts', path: str=DATA_PATH, schemas: dict=SCHEMAS) -> None:
+    __path = path.format(chain=chain, dataset=dataset)
+    __schema = schemas.get(dataset, None)
+    return pq.write_to_dataset(table, root_path=__path, schema=__schema, partition_cols=['block_number'])
+
 # __c = pyarrow.compute.field('contract_address') == bytes.fromhex('001BD7EF3B7424A18DA412C7AAA3B6534BA7816E')
