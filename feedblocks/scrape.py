@@ -11,7 +11,9 @@ import requests
 
 ETH_API_KEY = os.environ.get('ETH_API_KEY', '')
 ETH_API_URL = 'https://api.etherscan.io/api?module=contract&action=getsourcecode&address={address}&apikey={key}'
-FREQUENCY = 9. # Hz / calls per second
+
+RATE_LIMIT_ETHERSCAN = 5. # Hz / calls per second
+RATE_LIMIT_INFURA = 10. # Hz / calls per second
 
 # RATE LIMIT ##################################################################
 
@@ -49,42 +51,40 @@ def get_source(address: str, key: str=ETH_API_KEY) -> bytes:
         return None
     return __b
 
-def scrape_source(table: pl.Table, key: str=ETH_API_KEY, freq: float=FREQUENCY) -> pl.Table:
-    # global stats
-    __batch_count = 0
+def scrape_source(batch: pl.RecordBatch, get: callable=pace(freq=RATE_LIMIT_ETHERSCAN)(get_source), log: callable=logging.info) -> list:
     # output
-    __table = []
-    # rate limited get
-    __get = pace(freq=freq)(get_source) # rate limit on API queries
-    for __batch in table.to_batches(max_chunksize=128):
-        # split
-        __rows = __batch.to_pylist()
-        # batch stats
-        logging.info('batch {}...'.format(__batch_count))
-        __error_count = 0
-        __skipped_count = 0
-        __not_found_count = 0
-        __ok_count = 0
-        for __r in __rows:
-            if __r and __r.get('contract_address', b'') and not __r.get('source_code', b''):
-                # query API
-                __a = '0x' + __r.get('contract_address', b'').hex()
-                __r['source_code'] = __get(address=__a, key=key)
-                # stats
-                if __r['source_code'] is None:
-                    __error_count +=1
-                elif not __r['source_code']:
-                    __not_found_count += 1
-                else:
-                    __ok_count +=1
+    __batch = []
+    # split
+    __rows = batch.to_pylist()
+    # batch stats
+    __error_count = 0
+    __skipped_count = 0
+    __missing_count = 0
+    __ok_count = 0
+    # iterate
+    for __r in __rows:
+        if __r and __r.get('contract_address', b'') and not __r.get('source_code', b''):
+            # query API
+            __a = '0x' + __r.get('contract_address', b'').hex()
+            __r['source_code'] = get(address=__a)
+            # stats
+            if __r['source_code'] is None:
+                __error_count +=1
+            elif not __r['source_code']:
+                __missing_count += 1
             else:
-                __skipped_count +=1
-            # save data
-            __table.append(__r)
-        # log
-        logging.info('stats:\nsuccessful: {ok}\nnot found: {found}\nskipped: {skipped}\nerrors: {errors}\n'.format(ok=__ok_count, found=__not_found_count, skipped=__skipped_count, errors=__error_count))
-        __batch_count += 1
-    return pl.Table.from_pylist(mapping=__table, schema=table.schema)
+                __ok_count +=1
+        else:
+            __skipped_count +=1
+        # save data
+        __batch.append(__r)
+    # log
+    log('ok: {}'.format(__ok_count))
+    log('missing: {}'.format(__missing_count))
+    log('skipped: {}'.format(__skipped_count))
+    log('errors: {}'.format(__error_count))
+    # format as pyarrow table
+    return __batch
 
 # RUNTIME BYTECODE ############################################################
 
