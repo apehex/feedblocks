@@ -1,6 +1,7 @@
 import functools
 import logging
 import os
+import traceback
 import sys
 
 import pyarrow.compute as pc
@@ -12,25 +13,30 @@ import feedblocks.scrape as fs
 
 # INDENT / FORMAT #############################################################
 
-def indent(ticks: int=0) -> callable:
-    def __decorator(func: callable) -> callable:
-        @functools.wraps(func)
-        def __wrapper(*args, **kwargs) -> None:
-            __msg = kwargs.get('msg', args[0])
-            return func((ticks * '.') + ((ticks > 0) * ' ') + __msg)
-        return __wrapper
+def indent(msg: str, offset: int=-4, tabs: int=4) -> str:
+    # account for logging frames
+    __i = tabs * max(0, len(traceback.extract_stack()) + offset)
+    return (__i * '.') + ((__i > 0) * ' ') + msg
 
-    return __decorator
+class IndentedStreamHandler(logging.StreamHandler):
+    def __init__(self, stream, offset: int=-4, tabs: int=4) -> None:
+        self._offset = offset
+        self._tabs = tabs
+        super(IndentedStreamHandler, self).__init__(stream)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        record.msg = indent(msg=record.msg, offset=self._offset, tabs=self._tabs)
+        super(IndentedStreamHandler, self).emit(record)
 
 # INIT ########################################################################
 
 MESSAGE_PATTERN = '[{levelname:>8}] {message}'
 
-def setup_logger(level: int=logging.INFO, pattern: str=MESSAGE_PATTERN) -> None:
+def setup_logger(level: int=logging.INFO, pattern: str=MESSAGE_PATTERN, offset: int=-4, tabs: int=4) -> None:
     """Configure the default log objects for a specific bot."""
     __formatter = logging.Formatter(pattern, style='{')
 
-    __handler = logging.StreamHandler(sys.stdout)
+    __handler = IndentedStreamHandler(stream=sys.stdout, offset=offset, tabs=tabs)
     __handler.setLevel(level)
     __handler.setFormatter(__formatter)
 
@@ -41,12 +47,8 @@ def setup_logger(level: int=logging.INFO, pattern: str=MESSAGE_PATTERN) -> None:
 # MAIN ########################################################################
 
 if __name__ == '__main__':
-    # setup the loggers with the right indentation for the inner loop
-    __info_4 = indent(ticks=4)(logging.info)
-    __info_8 = indent(ticks=8)(logging.info)
-    __debug_12 = indent(ticks=12)(logging.debug)
-    # init
-    setup_logger(level=logging.INFO)
+    # remove all the external indent
+    setup_logger(level=logging.INFO, offset=-10, tabs=4)
     # sort the parquet files
     fd.tidy()
     # load the current data
