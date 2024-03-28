@@ -71,16 +71,16 @@ def add_solidity_sources_to_batch(batch: pl.RecordBatch, get: callable=fs.get_so
         if __r and __r.get('contract_address', b'') and not __r.get('source_code', b''):
             __a = '0x' + __r.get('contract_address', b'').hex()
             __r['source_code'] = get(address=__a)
+            # stats
+            if __r['source_code'] is None:
+                __stats['errors'] += 1
+            elif not __r['source_code']:
+                __stats['missing'] += 1
+            else:
+                __stats['ok'] += 1
         # already fetched
         else:
-            __stats['skipped'] +=1
-        # stats
-        if __r['source_code'] is None:
-            __stats['errors'] +=1
-        elif not __r['source_code']:
-            __stats['missing'] += 1
-        else:
-            __stats['ok'] +=1
+            __stats['skipped'] += 1
         # save data
         __batch.append(__r)
     # log
@@ -93,16 +93,17 @@ def add_solidity_sources_to_table(table: pl.Table, get: callable=fs.get_source_f
     # iterate on parquet files / table
     __table = []
     __batches = list(table.to_batches(max_chunksize=128))
+    __total = len(__batches)
     # iterate
     for __i, __b in enumerate(__batches):
-        logging.info('batch {}'.format(__i))
+        logging.info('batch {} / {}'.format(__i, __total))
         __table.extend(add_solidity_sources_to_batch(batch=__b, get=get))
     # convert to pyarrow
     return pl.Table.from_pylist(mapping=__table, schema=table.schema)
 
 def add_solidity_sources_to_dataset(dataset: pq.ParquetDataset, get: callable=fs.get_source_from_etherscan) -> None:
     # scrape the solidity source code
-    for __fragment in dataset.fragments[:1]:
+    for __fragment in dataset.fragments[1:]:
         # current file
         logging.info(__fragment.path)
         # fetch solidity sources
