@@ -54,7 +54,7 @@ if __name__ == '__main__':
     # load the current data
     __dataset = fd.load(chain='ethereum', dataset='contracts')
     # scrape the solidity sources
-    fd.add_solidity_sources_to_dataset(dataset=__dataset, get=fs.get_source_from_etherscan)
+    fd.add_solidity_sources_to_dataset(dataset=__dataset, get=fs.get_source_from_etherscan, force_update_empty_records=False, force_update_filled_records=False)
     # reload the dataset with sources
     __dataset = fd.load(chain='ethereum', dataset='contracts')
 

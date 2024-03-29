@@ -2,6 +2,7 @@ import logging
 import os
 
 import pyarrow
+import pyarrow.compute as pc
 import pyarrow.lib as pl
 import pyarrow.parquet as pq
 
@@ -58,7 +59,48 @@ def save(table: pl.Table, chain: str='ethereum', dataset: str='contracts', path:
 
 # SOURCE CODE #################################################################
 
-def add_solidity_sources_to_batch(batch: pl.RecordBatch, get: callable=fs.get_source_from_etherscan) -> list:
+def _update_record(
+    record: dict,
+    force_update_empty_records: bool=False,
+    force_update_filled_records: bool=False
+) -> bool:
+    __address = record.get('contract_address', None)
+    __sources = record.get('source_code', None)
+    return (
+        (bool(record) and bool(__address)) # must be feasible
+        and (
+            __sources is None # still not queried
+            or (__sources == b'' and force_update_empty_records) # was not found on previous update
+            or (bool(__sources) and force_update_filled_records))) # has already been queried & saved but update is requested
+
+def _update_table(
+    table: pl.Table,
+    force_update_empty_records: bool=False,
+    force_update_filled_records: bool=False
+) -> bool:
+    __c = pc.field('source_code') != b''
+    return (
+        'source_code' not in table.column_names # table has no source code yet
+        or force_update_empty_records or force_update_filled_records # update older data
+        or not bool(table.filter(__c))) # column is in schema but still empty
+
+def _update_stats(
+    record: dict,
+    stats: dict,
+    updated: bool
+) -> None:
+    __s = record.get('source_code', None)
+    stats['ok'] += int(updated and bool(__s))
+    stats['missing'] += int(updated and (__s == b''))
+    stats['skipped'] += int(not updated)
+    stats['errors'] += int(updated and (__s is None))
+
+def add_solidity_sources_to_batch(
+    batch: pl.RecordBatch,
+    get: callable=fs.get_source_from_etherscan,
+    force_update_empty_records: bool=False,
+    force_update_filled_records: bool=False
+) -> list:
     # output
     __batch = []
     # split
@@ -67,20 +109,13 @@ def add_solidity_sources_to_batch(batch: pl.RecordBatch, get: callable=fs.get_so
     __stats = {'ok': 0, 'missing': 0, 'skipped': 0, 'errors': 0}
     # iterate
     for __r in __rows:
+        __update_required = _update_record(record=__r, force_update_empty_records=force_update_empty_records, force_update_filled_records=force_update_filled_records)
         # query API
-        if __r and __r.get('contract_address', b'') and not __r.get('source_code', b''):
+        if __update_required:
             __a = '0x' + __r.get('contract_address', b'').hex()
             __r['source_code'] = get(address=__a)
-            # stats
-            if __r['source_code'] is None:
-                __stats['errors'] += 1
-            elif not __r['source_code']:
-                __stats['missing'] += 1
-            else:
-                __stats['ok'] += 1
-        # already fetched
-        else:
-            __stats['skipped'] += 1
+        # stats
+        _update_stats(record=__r, stats=__stats, updated=__update_required)
         # save data
         __batch.append(__r)
     # log
@@ -89,25 +124,45 @@ def add_solidity_sources_to_batch(batch: pl.RecordBatch, get: callable=fs.get_so
     # format as pyarrow table
     return __batch
 
-def add_solidity_sources_to_table(table: pl.Table, get: callable=fs.get_source_from_etherscan) -> pl.Table:
+def add_solidity_sources_to_table(
+    table: pl.Table,
+    get: callable=fs.get_source_from_etherscan,
+    force_update_empty_records: bool=False,
+    force_update_filled_records: bool=False
+) -> pl.Table:
     # iterate on parquet files / table
     __table = []
     __batches = list(table.to_batches(max_chunksize=128))
-    __total = len(__batches)
+    __total = max(0, len(__batches) - 1)
     # iterate
     for __i, __b in enumerate(__batches):
         logging.info('batch {} / {}'.format(__i, __total))
-        __table.extend(add_solidity_sources_to_batch(batch=__b, get=get))
+        __table.extend(add_solidity_sources_to_batch(
+            batch=__b,
+            get=get,
+            force_update_empty_records=force_update_empty_records,
+            force_update_filled_records=force_update_filled_records))
     # convert to pyarrow
     return pl.Table.from_pylist(mapping=__table, schema=table.schema)
 
-def add_solidity_sources_to_dataset(dataset: pq.ParquetDataset, get: callable=fs.get_source_from_etherscan) -> None:
+def add_solidity_sources_to_dataset(
+    dataset: pq.ParquetDataset,
+    get: callable=fs.get_source_from_etherscan,
+    force_update_empty_records: bool=False,
+    force_update_filled_records: bool=False
+) -> None:
     # scrape the solidity source code
-    for __fragment in dataset.fragments[1:]:
+    for __fragment in dataset.fragments:
         # current file
         logging.info(__fragment.path)
+        __table = __fragment.to_table(schema=dataset.schema)
         # fetch solidity sources
-        __table = add_solidity_sources_to_table(table=__fragment.to_table(), get=get)
+        if _update_table(table=__table, force_update_empty_records=force_update_empty_records, force_update_filled_records=force_update_filled_records):
+            __table = add_solidity_sources_to_table(
+                table=__table,
+                get=get,
+                force_update_empty_records=force_update_empty_records,
+                force_update_filled_records=force_update_filled_records)
         # save to disk
         pq.write_table(table=__table, where=__fragment.path + '_')
         # if successful replace the original table
