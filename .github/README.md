@@ -6,5 +6,5 @@
 
 ```shell
 . .env
-cryo contracts -a -r "$ETH_RPC_URL" -l 9 -b -6000: -o data/ -s 'contract_address'
+cryo contracts -a -r "$ETH_RPC_URL" -l 9 -b -6000: -o data/ -s 'block_number' --no-report
 ```

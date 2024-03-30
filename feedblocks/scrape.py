@@ -46,8 +46,8 @@ def get_source(address: str, url: str=ETH_API_URL, key: str=ETH_API_KEY) -> byte
         __r = requests.get(url.format(address=address, key=key))
         __j = json.loads(__r.text)
         __b = __j['result'][0]['SourceCode'].encode('utf-8')
-    except Exception:
-        logging.debug(str(__j))
+    except Exception as __e:
+        logging.debug(str(__e))
         return None
     return __b
 

@@ -169,6 +169,6 @@ def add_solidity_sources_to_dataset(
         if os.path.isfile(__fragment.path + '_'):
             try:
                 os.replace(__fragment.path + '_', __fragment.path)
-                logging.info('updated solidity sources')
+                logging.info('=> updated {}'.format(__fragment.path))
             except Exception:
                 logging.debug('failed to replace {}'.format(__fragment.path))
