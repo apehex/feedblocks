@@ -6,14 +6,11 @@
 
 ### Data collection
 
-- [ ] solidity source code
-- [ ] save as binary in parquet
-- [ ] schema:
-    - [ ] same as cryo contracts
-    - [ ] add columns:
-        - [ ] source code
-        - [ ] creation assembly
-        - [ ] runtime assembly
+- [x] solidity source code
+- [x] save as binary in parquet
+- [x] schema:
+    - [x] same as cryo contracts
+    - [ ] add source code
 
 ### Data augmentation
 
@@ -28,32 +25,34 @@
     - [x] runtime binary code
     - [x] store in the database
 - [ ] normalize:
-    - [ ] numbers as 32-byte binary word
+    - [x] numbers as 32-byte binary word
     - [ ] with / without comments?
     - [ ] spaces / newlines
     - [ ] identifiers?
-- [ ] compile:
+- [x] compile:
     - [x] recreate the source project structure from the data saved in parquet
 
 ### Tokenization
 
-- [ ] naive BPE
 - [ ] numbers:
     - [ ] from:
         - [ ] scientific notation
         - [ ] fixed point notation
         - [ ] integer format
         - [ ] HEX format
-    - [ ] to 256 dim vector of bools = 1 byte = uint8
-- [ ] assembly:
-    - [ ] keywords
-    - [ ] arguments: HEX encoded addresses, values, etc
+    - [ ] to 256 dim vector of bools = 4 bytes = uint32
+- [x] assembly:
+    - [x] keywords
+    - [x] arguments: HEX encoded addresses, values, etc
 - [ ] solidity:
+    - [ ] naive BPE
     - [ ] keywords
     - [ ] identifiers / variables
     - [ ] indentation
 - [ ] encode / embed the **compiler version & args**
 
-### VAE
+### Models
 
-- [ ] assembly
+- [ ] VAEs:
+    - [ ] assembly
+    - [ ] solidity

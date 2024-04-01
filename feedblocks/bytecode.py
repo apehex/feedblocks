@@ -40,7 +40,7 @@ def one_hot(index: int, depth: int) -> list:
 
 def _tokenize_data(data: bytes) -> list:
     __bits = '{0:0>256b}'.format(int(data.hex(), 16)) if data else '' # expects at most a 32-byte word of data
-    return [int(__b) for __b in __bits[::-1]]
+    return [int(__b) for __b in __bits[::-1]] # little endian
 
 def _tokenize_instruction(chunk: bytes) -> list:
     return one_hot(index=chunk[0], depth=256) + _tokenize_data(data=chunk[1:])
@@ -56,3 +56,5 @@ def tokenize(bytecode: bytes) -> iter:
 
 def detokenize(x: list) -> bytes:
     return b''
+
+# print("\033[48;5;200mHello\033[0m")
