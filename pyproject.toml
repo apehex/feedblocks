@@ -11,6 +11,7 @@ pyarrow = ">=15.0"
 python = ">=3.9,<4"
 requests = ">=2.31"
 web3 = ">=6.15"
+tensorflow = "^2.16.1"
 
 [build-system]
 requires = ["poetry-core"]

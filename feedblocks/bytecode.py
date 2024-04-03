@@ -254,10 +254,10 @@ def one_hot(index: int, depth: int) -> list:
     __i = index % depth
     return __i * [0] + [1] + (depth - __i - 1) * [0]
 
-# TOKEN > #####################################################################
+# > ###########################################################################
 
 def _tokenize_data(data: bytes) -> list:
-    __bits = '{0:0>256b}'.format(int(data.hex(), 16)) if data else '' # expects at most a 32-byte word of data
+    __bits = '{0:0>256b}'.format(int(data.hex(), 16) if data else 0) # expects at most a 32-byte word of data
     return [int(__b) for __b in __bits[::-1]] # little endian
 
 def _tokenize_instruction(chunk: bytes) -> list:
@@ -270,7 +270,7 @@ def tokenize(bytecode: bytes) -> iter:
         yield _tokenize_instruction(chunk=bytecode[__i:__i+__len])
         __i = __i + __len
 
-# TOKEN < #####################################################################
+# < ###########################################################################
 
 def interpret(output: tf.Tensor) -> tf.Tensor:
     __dim = output.shape[-1] // 2
@@ -285,9 +285,9 @@ def _detokenize_instruction(x: list) -> bytes:
     # returns the first one, for the opcode
     __opcode = x.index(1)
     # length of the HEX encoded data
-    __len = 2 * (instruction_length(opcode=__opcode) - 1)
+    __len = 2 * max(0, instruction_length(opcode=__opcode) - 1)
     # format for the data
-    __hex = '{{0:0>{length}x}}'.format(length=__len)
+    __hex = (__len > 0) * '{{0:0>{length}x}}'.format(length=__len)
     # data
     __data = int(''.join(str(__b) for __b in x[__dim:])[::-1], 2)
     return bytes([__opcode]) + bytes.fromhex(__hex.format(__data))
