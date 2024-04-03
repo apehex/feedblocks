@@ -237,6 +237,17 @@ is_push = lambda opcode: opcode >= PUSH1 and opcode <= PUSH32
 def instruction_length(opcode: int) -> int:
     return 1 + is_push(opcode) * (1 + opcode - PUSH1) # 1 byte for the opcode + n bytes of data
 
+def disassemble(bytecode: bytes) -> str:
+    __i = 0
+    __a = ''
+    while __i < len(bytecode):
+        __len = instruction_length(opcode=bytecode[__i])
+        __opcode = OPCODES.get(bytecode[__i], 'INVALID')
+        __data = int(__len > 1) * (' ' + bytecode[__i + 1: __i + __len].hex())
+        __a += __opcode + __data + '\n'
+        __i = __i + __len
+    return __a
+
 # TOKENS ######################################################################
 
 def one_hot(index: int, depth: int) -> list:
