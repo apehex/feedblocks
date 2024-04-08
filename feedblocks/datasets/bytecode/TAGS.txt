@@ -1,0 +1,7 @@
+content.language-formality.formal # Contains formal languages.
+content.subject.computer-science # Relates to computer science.
+content.subject.internet # Relates to internet.
+content.subject.software # Relates to software.
+ml.task.language-modeling # Relates to Language Modeling, a machine learning task.
+ml.task.machine-translation # Relates to Machine Translation, a machine learning task.
+ml.task.text-generation # Relates to Text Generation, a machine learning task.
