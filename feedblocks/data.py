@@ -10,7 +10,7 @@ import feedblocks.scrape as fs
 
 # SCHEMA ######################################################################
 
-SCHEMAS ={
+SCHEMAS = {
     'contracts': pyarrow.schema(fields=[
         pl.field('chain_id', pyarrow.uint64()),
         pl.field('block_number', pyarrow.uint32()),

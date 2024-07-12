@@ -47,4 +47,4 @@ This results in a dataset of shape `(B, T, 512)`.
 
 [github-project]: https://github.com/apehex/feedblocks/
 [github-tfds]: https://github.com/apehex/feedblocks/tree/main/feedblocks/datasets/bytecode/evmc_dataset_builder.py
-[solidity-docs-json]: https://docs.soliditylang.org/en/v0.8.20/using-the-compiler.html#compiler-input-and-output-json-description
+[solidity-docs-json]: https://docs.soliditylang.org/en/v0.8.26/using-the-compiler.html#compiler-input-and-output-json-description

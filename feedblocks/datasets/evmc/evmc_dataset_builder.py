@@ -18,21 +18,20 @@ class Builder(tfds.core.GeneratorBasedBuilder):
     def _info(self) -> tfds.core.DatasetInfo:
         """Returns the dataset metadata."""
         return self.dataset_info_from_configs(
-                homepage='https://github.com/apehex/feedblocks/',
-                supervised_keys=None,
-                disable_shuffling=False,
-                features=tfds.features.FeaturesDict({
-                    'solidity_sourcecode': tfds.features.Tensor(shape=(None,), dtype=tf.dtypes.int32),
-                    'creation_bytecode': tfds.features.Tensor(shape=(None,), dtype=tf.dtypes.int32),
-                    'runtime_bytecode': tfds.features.Tensor(shape=(None,), dtype=tf.dtypes.int32),}), # TODO (None, 512 after tokenization)
-        )
+            homepage='https://github.com/apehex/feedblocks/',
+            supervised_keys=None,
+            disable_shuffling=False,
+            features=tfds.features.FeaturesDict({
+                'solidity_sourcecode': tfds.features.Tensor(shape=(None,), dtype=tf.dtypes.int32),
+                'creation_bytecode': tfds.features.Tensor(shape=(None,), dtype=tf.dtypes.int32),
+                'runtime_bytecode': tfds.features.Tensor(shape=(None,), dtype=tf.dtypes.int32),})) # TODO (None, 512 after tokenization)
 
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
-        """Produce contract samples with runtime and creation bytecode."""
+        """Generates the data splits."""
         return {'train': self._generate_examples()}
 
     def _generate_examples(self) -> iter:
-        """Yields contract samples."""
+        """Produces contract samples with runtime and creation bytecode."""
         __i = -1
         for __batch in self.__batch_iter:
             for __row in __batch.to_pylist():

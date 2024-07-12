@@ -1,4 +1,4 @@
-"""EVMC dataset."""
+"""EVM Contracts dataset."""
 
 import tensorflow_datasets as tfds
 
