@@ -11,7 +11,7 @@ import requests
 ETH_API_KEY = os.environ.get('ETH_API_KEY', '')
 ETH_API_URL = 'https://api.etherscan.io/api?module=contract&action=getsourcecode&address={address}&apikey={key}'
 
-RATE_LIMIT_ETHERSCAN = 5. # Hz / calls per second
+RATE_LIMIT_ETHERSCAN = 4. # Hz / calls per second
 RATE_LIMIT_INFURA = 10. # Hz / calls per second
 
 # RATE LIMIT ##################################################################
