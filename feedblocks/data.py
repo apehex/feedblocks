@@ -1,7 +1,7 @@
 import logging
 import os
 
-import pyarrow
+import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.lib as pl
 import pyarrow.parquet as pq
@@ -10,23 +10,34 @@ import feedblocks.scrape as fs
 
 # SCHEMA ######################################################################
 
-SCHEMAS = {
-    'contracts': pyarrow.schema(fields=[
-        pl.field('chain_id', pyarrow.uint64()),
-        pl.field('block_number', pyarrow.uint32()),
-        pl.field('block_hash', pyarrow.binary()),
-        pl.field('transaction_hash', pyarrow.binary()),
-        pl.field('deployer', pyarrow.binary()),
-        pl.field('factory', pyarrow.binary()),
-        pl.field('contract_address', pyarrow.binary()),
-        pl.field('create_index', pyarrow.uint32()),
-        pl.field('init_code', pyarrow.binary()),
-        pl.field('init_code_hash', pyarrow.binary()),
-        pl.field('code', pyarrow.binary()),
-        pl.field('code_hash', pyarrow.binary()),
-        pl.field('n_init_code_bytes', pyarrow.uint32()),
-        pl.field('n_code_bytes', pyarrow.uint32()),
-        pl.field('source_code', pyarrow.binary()),]),}
+MAPPING = {
+    pl.field('chain_id', pa.uint64()): pl.field('chain_id', pa.uint64()),
+    pl.field('block_number', pa.uint32()): pl.field('block_number', pa.uint32()),
+    pl.field('block_hash', pa.binary()): pl.field('block_hash', pa.binary()),
+    pl.field('transaction_hash', pa.binary()): pl.field('transaction_hash', pa.binary()),
+    pl.field('deployer', pa.binary()): pl.field('deployer_address', pa.binary()),
+    pl.field('factory', pa.binary()): pl.field('factory_address', pa.binary()),
+    pl.field('contract_address', pa.binary()): pl.field('contract_address', pa.binary()),
+    pl.field('init_code', pa.binary()): pl.field('creation_bytecode', pa.binary()),
+    pl.field('code', pa.binary()): pl.field('runtime_bytecode', pa.binary()),
+    None: pl.field('creation_sourcecode', pa.binary()),}
+
+INPUT_SCHEMA = pa.schema(fields=[__k for __k in MAPPING.keys() if __k is not None])
+OUTPUT_SCHEMA = pa.schema(fields=[__k for __k in MAPPING.values() if __k is not None])
+
+# FORMAT ######################################################################
+
+def reformat(table: pa.Table, mapping: dict=MAPPING) -> pa.Table:
+    # don't rename columns that will be removed
+    __rename = {__k.name: __v.name for __k, __v in mapping.items() if __k is not None}
+    __remove = [table.field(__i).name for __i in range(table.num_columns) if table.field(__i) not in mapping]
+    __add = pa.nulls(size=table.num_rows, type=pa.binary())
+    # actually rename
+    __table = table.rename_columns(names=__rename)
+    # remove the columns
+    __table = __table.drop_columns(columns=__remove)
+    # add the column for source code data
+    return __table.append_column(field_=mapping[None], column=__add)
 
 # PARTITION ###################################################################
 
