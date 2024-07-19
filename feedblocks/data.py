@@ -28,7 +28,7 @@ OUTPUT_SCHEMA = pa.schema(fields=[__k for __k in MAPPING.values() if __k is not 
 
 # FORMAT ######################################################################
 
-def reformat(table: pa.Table, mapping: dict=MAPPING) -> pa.Table:
+def reformat_table(table: pa.Table, mapping: dict=MAPPING) -> pa.Table:
     # don't rename columns that will be removed
     __rename = {__k.name: __v.name for __k, __v in mapping.items() if __k is not None}
     __remove = [table.field(__i).name for __i in range(table.num_columns) if table.field(__i) not in mapping]
@@ -40,6 +40,7 @@ def reformat(table: pa.Table, mapping: dict=MAPPING) -> pa.Table:
     # add the column for source code data
     return __table.append_column(field_=mapping[None], column=__add)
 
+
 # PARTITION ###################################################################
 
 def parse_fragment_path(path: str) -> dict:
@@ -50,8 +51,11 @@ def parse_fragment_path(path: str) -> dict:
         __result = {'chain': __match[0][0], 'dataset': __match[0][1], 'first_block': int(__match[0][2]), 'last_block': int(__match[0][-1])}
     return __result
 
-def compose_fragment_path(first_block: int, last_block: int, root: str='data', chain: str='ethereum', dataset: str='contracts'):
-    return os.path.join(root, chain, dataset, '{}_to_{}.parquet'.format(first_block, last_block))
+def compose_dataset_path(root: str='data', chain: str='ethereum', dataset: str='contracts')
+    return os.path.join(root, chain, dataset)
+
+def compose_fragment_path(first_block: int, last_block: int, dataset_path: str='data/ethereum/contracts/'):
+    return os.path.join(dataset_path, '{}_to_{}.parquet'.format(first_block, last_block))
 
 def tidy(path: str='data') -> None:
     __files = [__p.split('__') for __p in os.listdir(path) if os.path.isfile(os.path.join(path, __p))]
@@ -68,27 +72,29 @@ def tidy(path: str='data') -> None:
 
 DATA_PATH = 'data/{chain}/{dataset}/'
 
-def load(chain: str='ethereum', dataset: str='contracts', path: str=DATA_PATH, schemas: dict=SCHEMAS) -> pq.ParquetDataset:
+def load(chain: str='ethereum', dataset: str='contracts', path: str=DATA_PATH, schema: dict=OUTPUT_SCHEMA) -> pq.ParquetDataset:
     __path = path.format(chain=chain, dataset=dataset)
-    __schema = schemas.get(dataset, None)
-    return pq.ParquetDataset(__path, schema=__schema)
+    return pq.ParquetDataset(__path, schema=schema)
 
-def save(table: pl.Table, chain: str='ethereum', dataset: str='contracts', path: str=DATA_PATH, schemas: dict=SCHEMAS) -> None:
+def export(dataset: pq.ParquetDataset, chain: str='ethereum', dataset: str='contracts', path: str=DATA_PATH, schema: dict=OUTPUT_SCHEMA) -> pq.ParquetDataset:
     __path = path.format(chain=chain, dataset=dataset)
-    __schema = schemas.get(dataset, None)
-    return pq.write_to_dataset(table, root_path=__path, schema=__schema)
+    return pq.ParquetDataset(__path, schema=schema)
 
-# __c = pyarrow.compute.field('contract_address') == bytes.fromhex('001BD7EF3B7424A18DA412C7AAA3B6534BA7816E')
+def save(table: pl.Table, chain: str='ethereum', dataset: str='contracts', path: str=DATA_PATH, schema: dict=OUTPUT_SCHEMA) -> None:
+    __path = path.format(chain=chain, dataset=dataset)
+    return pq.write_to_dataset(table, root_path=__path, schema=schema)
+
+# __c = pa.compute.field('contract_address') == bytes.fromhex('001BD7EF3B7424A18DA412C7AAA3B6534BA7816E')
 
 # SOURCE CODE #################################################################
 
-def _update_record(
+def _is_record_update_required(
     record: dict,
     force_update_empty_records: bool=False,
     force_update_filled_records: bool=False
 ) -> bool:
     __address = record.get('contract_address', None)
-    __sources = record.get('source_code', None)
+    __sources = record.get('creation_sourcecode', None)
     return (
         (bool(record) and bool(__address)) # must be feasible
         and (
@@ -96,23 +102,23 @@ def _update_record(
             or (__sources == b'' and force_update_empty_records) # was not found on previous update
             or (bool(__sources) and force_update_filled_records))) # has already been queried & saved but update is requested
 
-def _update_table(
+def _is_table_update_required(
     table: pl.Table,
     force_update_empty_records: bool=False,
     force_update_filled_records: bool=False
 ) -> bool:
-    __c = pc.field('source_code') != b''
+    __c = pc.field('creation_sourcecode').is_null()
     return (
-        'source_code' not in table.column_names # table has no source code yet
+        'creation_sourcecode' not in table.column_names # table has no source code yet
         or force_update_empty_records or force_update_filled_records # update older data
-        or not bool(table.filter(__c))) # column is in schema but still empty
+        or bool(table.filter(__c).num_rows)) # column is in schema but has missing values
 
 def _update_stats(
     record: dict,
     stats: dict,
     updated: bool
 ) -> None:
-    __s = record.get('source_code', None)
+    __s = record.get('creation_sourcecode', None)
     stats['ok'] += int(updated and bool(__s))
     stats['missing'] += int(updated and (__s == b''))
     stats['skipped'] += int(not updated)
@@ -132,11 +138,11 @@ def add_solidity_sources_to_batch(
     __stats = {'ok': 0, 'missing': 0, 'skipped': 0, 'errors': 0}
     # iterate
     for __r in __rows:
-        __update_required = _update_record(record=__r, force_update_empty_records=force_update_empty_records, force_update_filled_records=force_update_filled_records)
+        __update_required = _is_record_update_required(record=__r, force_update_empty_records=force_update_empty_records, force_update_filled_records=force_update_filled_records)
         # query API
         if __update_required:
             __a = '0x' + __r.get('contract_address', b'').hex()
-            __r['source_code'] = get(address=__a)
+            __r['creation_sourcecode'] = get(address=__a)
         # stats
         _update_stats(record=__r, stats=__stats, updated=__update_required)
         # save data
@@ -180,7 +186,7 @@ def add_solidity_sources_to_dataset(
         logging.info(__fragment.path)
         __table = __fragment.to_table(schema=dataset.schema)
         # fetch solidity sources
-        if _update_table(table=__table, force_update_empty_records=force_update_empty_records, force_update_filled_records=force_update_filled_records):
+        if _is_table_update_required(table=__table, force_update_empty_records=force_update_empty_records, force_update_filled_records=force_update_filled_records):
             __table = add_solidity_sources_to_table(
                 table=__table,
                 get=get,
@@ -194,4 +200,4 @@ def add_solidity_sources_to_dataset(
                 os.replace(__fragment.path + '_', __fragment.path)
                 logging.info('=> updated {}'.format(__fragment.path))
             except Exception:
-                logging.debug('failed to replace {}'.format(__fragment.path))
+                logging.warning('failed to replace {}'.format(__fragment.path))
