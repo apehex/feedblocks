@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -40,6 +41,17 @@ def reformat(table: pa.Table, mapping: dict=MAPPING) -> pa.Table:
     return __table.append_column(field_=mapping[None], column=__add)
 
 # PARTITION ###################################################################
+
+def parse_fragment_path(path: str) -> dict:
+    __result = {}
+    __regex = re.compile(r'(\w+)__(\w+)__(\d+)_to_(\d+).parquet')
+    __match = re.findall(pattern=__regex, string=os.path.basename(path))
+    if __match and len(__match[0]) == 4:
+        __result = {'chain': __match[0][0], 'dataset': __match[0][1], 'first_block': int(__match[0][2]), 'last_block': int(__match[0][-1])}
+    return __result
+
+def compose_fragment_path(first_block: int, last_block: int, root: str='data', chain: str='ethereum', dataset: str='contracts'):
+    return os.path.join(root, chain, dataset, '{}_to_{}.parquet'.format(first_block, last_block))
 
 def tidy(path: str='data') -> None:
     __files = [__p.split('__') for __p in os.listdir(path) if os.path.isfile(os.path.join(path, __p))]
