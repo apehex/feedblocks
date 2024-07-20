@@ -3,6 +3,7 @@ import logging
 import os
 import traceback
 import sys
+import tempfile
 
 import pyarrow.compute as pc
 import pyarrow.lib as pl
@@ -49,12 +50,20 @@ def setup_logger(level: int=logging.INFO, pattern: str=MESSAGE_PATTERN, offset: 
 if __name__ == '__main__':
     # remove all the external indent
     setup_logger(level=logging.INFO, offset=-10, tabs=4)
+    # make tmp dir
+    __tmp = tempfile.mkdtemp()
     # sort the parquet files
-    fd.tidy()
-    # load the current data
-    __dataset = fd.load(chain='ethereum', dataset='contracts')
+    __input_dataset_path = fd.compose_dataset_path(root='/mnt/usb0/data/blockchain/', chain='ethereum', dataset='contracts')
+    __output_dataset_path = fd.compose_dataset_path(root='data/', chain='ethereum', dataset='contracts')
+    # load both scraped and current datasets
+    __input_dataset = pq.ParquetDataset(__input_dataset_path, schema=fd.INPUT_SCHEMA)
+    __output_dataset = pq.ParquetDataset(__output_dataset_path, schema=fd.OUTPUT_SCHEMA)
+    # reformat
+    __input_dataset = fd.reformat_dataset(dataset=__input_dataset, tempdir=__tmp, mapping=fd.MAPPING)
+    # merge the new scraped data with the current dataset
+    __output_dataset = fd.merge_datasets(source=__input_dataset, destination=__output_dataset)
     # scrape the solidity sources
-    fd.add_solidity_sources_to_dataset(dataset=__dataset, get=fs.get_source_from_etherscan, force_update_empty_records=False, force_update_filled_records=False)
+    fd.add_solidity_sources_to_dataset(dataset=__output_dataset, get=fs.get_source_from_etherscan, force_update_empty_records=False, force_update_filled_records=False)
     # reload the dataset with sources
     __dataset = fd.load(chain='ethereum', dataset='contracts')
 

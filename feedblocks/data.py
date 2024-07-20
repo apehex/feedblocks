@@ -40,6 +40,42 @@ def reformat_table(table: pa.Table, mapping: dict=MAPPING) -> pa.Table:
     # add the column for source code data
     return __table.append_column(field_=mapping[None], column=__add)
 
+def reformat_dataset(dataset: pq.ParquetDataset, tempdir: str, mapping: dict=MAPPING) -> pq.ParquetDataset:
+    logging.info('reformatting...')
+    for __fragment in dataset.fragments:
+        # extract the meta parameters
+        __parsed = parse_fragment_path(__fragment.path)
+        # filename
+        __name = compose_fragment_path(first_block=__parsed['first_block'], last_block=__parsed['last_block'], dataset_path=tempdir)
+        # load the data
+        __table = __fragment.to_table()
+        # reformat the table
+        __table = reformat_table(table=__table, mapping=mapping)
+        # write to disk
+        pq.write_table(table=__table, where=os.path.join(tempdir, __name))
+        # log
+        logging.info('.... {}'.format(__name))
+        # reload the resulting dataset
+    return pq.ParquetDataset(tempdir, schema=__table.schema)
+
+# MERGE #######################################################################
+
+def merge_datasets(source: pq.ParquetDataset, destination: pq.ParquetDataset) -> pq.ParquetDataset:
+    logging.info('merging...')
+    # destination path
+    __dest_dir = destination._base_dir
+    # list fragments in both datasets
+    __dest_files = [os.path.basename(__f.path) for __f in destination.fragments]
+    # iterate over the source dataset
+    for __fragment in source.fragments:
+        __src_name = os.path.basename(__fragment.path)
+        # do not overwrite
+        if __src_name not in __dest_files:
+            pq.write_table(table=__fragment.to_table(), where=os.path.join(__dest_dir, __src_name))
+            # log
+            logging.info('.... {} => {}'.format(__fragment.path, os.path.join(__dest_dir, __src_name)))
+    # load the resulting dataset
+    return pq.ParquetDataset(__dest_dir, schema=destination.schema)
 
 # PARTITION ###################################################################
 
@@ -51,10 +87,10 @@ def parse_fragment_path(path: str) -> dict:
         __result = {'chain': __match[0][0], 'dataset': __match[0][1], 'first_block': int(__match[0][2]), 'last_block': int(__match[0][-1])}
     return __result
 
-def compose_dataset_path(root: str='data', chain: str='ethereum', dataset: str='contracts')
+def compose_dataset_path(root: str='data', chain: str='ethereum', dataset: str='contracts') -> str:
     return os.path.join(root, chain, dataset)
 
-def compose_fragment_path(first_block: int, last_block: int, dataset_path: str='data/ethereum/contracts/'):
+def compose_fragment_path(first_block: int, last_block: int, dataset_path: str='data/ethereum/contracts/') -> str:
     return os.path.join(dataset_path, '{}_to_{}.parquet'.format(first_block, last_block))
 
 def tidy(path: str='data') -> None:
@@ -73,10 +109,6 @@ def tidy(path: str='data') -> None:
 DATA_PATH = 'data/{chain}/{dataset}/'
 
 def load(chain: str='ethereum', dataset: str='contracts', path: str=DATA_PATH, schema: dict=OUTPUT_SCHEMA) -> pq.ParquetDataset:
-    __path = path.format(chain=chain, dataset=dataset)
-    return pq.ParquetDataset(__path, schema=schema)
-
-def export(dataset: pq.ParquetDataset, chain: str='ethereum', dataset: str='contracts', path: str=DATA_PATH, schema: dict=OUTPUT_SCHEMA) -> pq.ParquetDataset:
     __path = path.format(chain=chain, dataset=dataset)
     return pq.ParquetDataset(__path, schema=schema)
 
