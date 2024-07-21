@@ -216,21 +216,24 @@ def add_solidity_sources_to_dataset(
     # scrape the solidity source code
     for __fragment in dataset.fragments:
         # current file
-        logging.info('scraping {}...'.format(os.path.basename(__fragment.path)))
         __table = __fragment.to_table(schema=dataset.schema)
         # fetch solidity sources
         if _is_table_update_required(table=__table, force_update_empty_records=force_update_empty_records, force_update_filled_records=force_update_filled_records):
+            logging.info('scraping {}...'.format(os.path.basename(__fragment.path)))
+            # scrape
             __table = add_solidity_sources_to_table(
                 table=__table,
                 get=get,
                 force_update_empty_records=force_update_empty_records,
                 force_update_filled_records=force_update_filled_records)
-        # save to disk
-        pq.write_table(table=__table, where=__fragment.path + '_')
-        # if successful replace the original table
-        if os.path.isfile(__fragment.path + '_'):
-            try:
-                os.replace(__fragment.path + '_', __fragment.path)
-                logging.info('=> updated {}'.format(__fragment.path))
-            except Exception:
-                logging.warning('failed to replace {}'.format(__fragment.path))
+            # save to disk
+            pq.write_table(table=__table, where=__fragment.path + '_')
+            # if successful replace the original table
+            if os.path.isfile(__fragment.path + '_'):
+                try:
+                    os.replace(__fragment.path + '_', __fragment.path)
+                    logging.info('=> updated {}'.format(__fragment.path))
+                except Exception:
+                    logging.warning('failed to replace {}'.format(__fragment.path))
+        else:
+            logging.info('skipped {}'.format(os.path.basename(__fragment.path)))
