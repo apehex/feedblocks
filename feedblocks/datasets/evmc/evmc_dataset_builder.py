@@ -21,13 +21,12 @@ class Evmc(tfds.core.GeneratorBasedBuilder):
             for __chain in ['ethereum']}
 
     def _info(self) -> tfds.core.DatasetInfo:
-        """Returns the dataset metadata."""
         return self.dataset_info_from_configs(
             homepage='https://github.com/apehex/feedblocks/',
             supervised_keys=None,
             disable_shuffling=False,
             features=tfds.features.FeaturesDict({
-                'block_number': tfds.features.Tensor(shape=(), dtype=tf.dtypes.int32),
+                'block_number': tfds.features.Tensor(shape=(), dtype=tf.int64),
                 'block_hash': tfds.features.Text(),
                 'transaction_hash': tfds.features.Text(),
                 'deployer_address': tfds.features.Text(),
@@ -35,7 +34,7 @@ class Evmc(tfds.core.GeneratorBasedBuilder):
                 'contract_address': tfds.features.Text(),
                 'creation_bytecode': tfds.features.Text(),
                 'runtime_bytecode': tfds.features.Text(),
-                'solidity_sourcecode': tfds.features.Text(),}))
+                'creation_sourcecode': tfds.features.Text(),}))
 
     def _format_field(self, record: dict, key: str, default: bytes=b'') -> bytes:
         __value = record.get(key, default)
@@ -46,12 +45,12 @@ class Evmc(tfds.core.GeneratorBasedBuilder):
             'block_number': self._format_field(record=record, key='block_number', default=0),
             'block_hash': self._format_field(record=record, key='block_hash', default=b'').hex(),
             'transaction_hash': self._format_field(record=record, key='transaction_hash', default=b'').hex(),
-            'deployer_address': self._format_field(record=record, key='deployer', default=b'').hex(),
-            'factory_address': self._format_field(record=record, key='factory', default=b'').hex(),
+            'deployer_address': self._format_field(record=record, key='deployer_address', default=b'').hex(),
+            'factory_address': self._format_field(record=record, key='factory_address', default=b'').hex(),
             'contract_address': self._format_field(record=record, key='contract_address', default=b'').hex(),
-            'creation_bytecode': self._format_field(record=record, key='init_code', default=b'').hex(),
-            'runtime_bytecode': self._format_field(record=record, key='code', default=b'').hex(),
-            'solidity_sourcecode': self._format_field(record=record, key='source_code', default=b'').decode('utf-8'),}
+            'creation_bytecode': self._format_field(record=record, key='creation_bytecode', default=b'').hex(),
+            'runtime_bytecode': self._format_field(record=record, key='runtime_bytecode', default=b'').hex(),
+            'creation_sourcecode': self._format_field(record=record, key='creation_sourcecode', default=b'').decode('utf-8'),}
 
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
         """Generates the data splits."""
