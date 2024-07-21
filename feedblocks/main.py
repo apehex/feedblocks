@@ -53,8 +53,8 @@ if __name__ == '__main__':
     # make tmp dir
     __tmp = tempfile.mkdtemp()
     # sort the parquet files
-    __input_dataset_path = '~/tmp/blockchain/data/scraped/'
-    __output_dataset_path = fd.compose_dataset_path(root='~/tmp/blockchain/data/cleaned/', chain='ethereum', dataset='contracts')
+    __input_dataset_path = '/mnt/usb0/data/blockchain/'
+    __output_dataset_path = fd.compose_dataset_path(root='data/', chain='ethereum', dataset='contracts')
     # load both scraped and current datasets
     __input_dataset = pq.ParquetDataset(__input_dataset_path, schema=fd.INPUT_SCHEMA)
     __output_dataset = pq.ParquetDataset(__output_dataset_path, schema=fd.OUTPUT_SCHEMA)
