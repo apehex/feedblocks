@@ -14,14 +14,14 @@ import feedblocks.scrape as fs
 MAPPING = {
     pl.field('chain_id', pa.uint64()): pl.field('chain_id', pa.uint64()),
     pl.field('block_number', pa.uint32()): pl.field('block_number', pa.uint32()),
-    pl.field('block_hash', pa.binary()): pl.field('block_hash', pa.binary()),
-    pl.field('transaction_hash', pa.binary()): pl.field('transaction_hash', pa.binary()),
-    pl.field('deployer', pa.binary()): pl.field('deployer_address', pa.binary()),
-    pl.field('factory', pa.binary()): pl.field('factory_address', pa.binary()),
-    pl.field('contract_address', pa.binary()): pl.field('contract_address', pa.binary()),
-    pl.field('init_code', pa.binary()): pl.field('creation_bytecode', pa.binary()),
-    pl.field('code', pa.binary()): pl.field('runtime_bytecode', pa.binary()),
-    None: pl.field('creation_sourcecode', pa.binary()),}
+    pl.field('block_hash', pa.large_binary()): pl.field('block_hash', pa.large_binary()),
+    pl.field('transaction_hash', pa.large_binary()): pl.field('transaction_hash', pa.large_binary()),
+    pl.field('deployer', pa.large_binary()): pl.field('deployer_address', pa.large_binary()),
+    pl.field('factory', pa.large_binary()): pl.field('factory_address', pa.large_binary()),
+    pl.field('contract_address', pa.large_binary()): pl.field('contract_address', pa.large_binary()),
+    pl.field('init_code', pa.large_binary()): pl.field('creation_bytecode', pa.large_binary()),
+    pl.field('code', pa.large_binary()): pl.field('runtime_bytecode', pa.large_binary()),
+    None: pl.field('creation_sourcecode', pa.large_binary()),}
 
 INPUT_SCHEMA = pa.schema(fields=[__k for __k in MAPPING.keys() if __k is not None])
 OUTPUT_SCHEMA = pa.schema(fields=[__k for __k in MAPPING.values() if __k is not None])
@@ -32,7 +32,7 @@ def reformat_table(table: pa.Table, mapping: dict=MAPPING) -> pa.Table:
     # don't rename columns that will be removed
     __rename = {__k.name: __v.name for __k, __v in mapping.items() if __k is not None}
     __remove = [table.field(__i).name for __i in range(table.num_columns) if table.field(__i) not in mapping]
-    __add = pa.nulls(size=table.num_rows, type=pa.binary())
+    __add = pa.nulls(size=table.num_rows, type=pa.large_binary())
     # actually rename
     __table = table.rename_columns(names=__rename)
     # remove the columns
@@ -45,7 +45,6 @@ def reformat_dataset(dataset: pq.ParquetDataset, tempdir: str, mapping: dict=MAP
     for __fragment in dataset.fragments:
         # extract the meta parameters
         __parsed = parse_fragment_path(__fragment.path)
-        # filename
         __name = compose_fragment_path(first_block=__parsed['first_block'], last_block=__parsed['last_block'], dataset_path=tempdir)
         # load the data
         __table = __fragment.to_table()
@@ -55,7 +54,9 @@ def reformat_dataset(dataset: pq.ParquetDataset, tempdir: str, mapping: dict=MAP
         pq.write_table(table=__table, where=os.path.join(tempdir, __name))
         # log
         logging.info('.... {}'.format(__name))
-        # reload the resulting dataset
+    # log
+    logging.info('exported to {}'.format(tempdir))
+    # reload the resulting dataset
     return pq.ParquetDataset(tempdir, schema=__table.schema)
 
 # MERGE #######################################################################
@@ -215,7 +216,7 @@ def add_solidity_sources_to_dataset(
     # scrape the solidity source code
     for __fragment in dataset.fragments:
         # current file
-        logging.info(__fragment.path)
+        logging.info('scraping {}...'.format(os.path.basename(__fragment.path)))
         __table = __fragment.to_table(schema=dataset.schema)
         # fetch solidity sources
         if _is_table_update_required(table=__table, force_update_empty_records=force_update_empty_records, force_update_filled_records=force_update_filled_records):
