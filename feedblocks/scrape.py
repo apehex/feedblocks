@@ -12,7 +12,7 @@ ETH_API_KEY = os.environ.get('ETH_API_KEY', '')
 ETH_API_URL = 'https://api.etherscan.io/api?module=contract&action=getsourcecode&address={address}&apikey={key}'
 
 RATE_LIMIT_ETHERSCAN = 4. # Hz / calls per second
-RATE_LIMIT_INFURA = 10. # Hz / calls per second
+RATE_LIMIT_INFURA = 9. # Hz / calls per second
 
 # RATE LIMIT ##################################################################
 
@@ -61,4 +61,4 @@ def get_source(address: str, url: str=ETH_API_URL, key: str=ETH_API_KEY) -> byte
     __j = json.loads(__r.text)
     return __j['result'][0]['SourceCode'].encode('utf-8')
 
-get_source_from_etherscan = pace(freq=3.)(functools.partial(get_source, url=ETH_API_URL, key=ETH_API_KEY))
+get_source_from_etherscan = pace(freq=RATE_LIMIT_ETHERSCAN)(functools.partial(get_source, url=ETH_API_URL, key=ETH_API_KEY))
