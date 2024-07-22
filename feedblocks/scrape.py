@@ -3,8 +3,7 @@ import json
 import logging
 import os
 import time
-
-import requests
+import urllib.request
 
 # META ########################################################################
 
@@ -57,8 +56,8 @@ def pace(freq: float, backoff: float=1.0, limit: int=4) -> callable:
 # SOURCE CODE #################################################################
 
 def get_source(address: str, url: str=ETH_API_URL, key: str=ETH_API_KEY) -> bytes:
-    __r = requests.get(url.format(address=address, key=key))
-    __j = json.loads(__r.text)
+    __r = urllib.request.urlopen(url.format(address=address, key=key))
+    __j = json.loads(__r.read().decode('utf-8'))
     return __j['result'][0]['SourceCode'].encode('utf-8')
 
 get_source_from_etherscan = pace(freq=RATE_LIMIT_ETHERSCAN)(functools.partial(get_source, url=ETH_API_URL, key=ETH_API_KEY))
