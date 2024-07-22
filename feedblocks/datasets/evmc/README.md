@@ -11,8 +11,8 @@ When available, the sources are also included.
 
 - homepage: [https://github.com/apehex/feedblocks][github-project]
 - source code: [tfds.datasets.evmc.Evmc][github-tfds]
-- version: 0.1.0
-- download size: 1.9 GB
+- version: 0.1.1
+- download size: 5 GB
 - auto-cached: no
 
 | Split         | Samples   |
