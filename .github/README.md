@@ -8,7 +8,7 @@ Blockchain transactions:
 
 ```shell
 . .env
-cryo contracts -a -r "$ETH_RPC_URL" -l 9 -b -6000: -o data/ -s 'block_number' --no-report
+cryo contracts -a -r "$ETH_RPC_URL" -l 9 -b 19393000:19494000 -o data/ -s 'block_number' --no-report
 ```
 
 Source code:

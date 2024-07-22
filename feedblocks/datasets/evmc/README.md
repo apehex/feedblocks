@@ -10,14 +10,14 @@ When available, the sources are also included.
 ## Metadata
 
 - homepage: [https://github.com/apehex/feedblocks][github-project]
-- source code: [tfds.datasets.evmc.Evmc][github-tfds]
+- source code: [feedblocks.datasets.evmc.Evmc][github-tfds]
 - version: 0.1.1
 - download size: 5 GB
 - auto-cached: no
 
 | Split         | Samples   |
 | ------------- | --------- |
-| 'ethereum'    | 349875    |
+| 'ethereum'    | 1294252   |
 
 ## Features
 
@@ -34,13 +34,16 @@ FeaturesDict({
     'solidity_sourcecode': tfds.features.Text(),})
 ```
 
-## Formatting
+## Features
 
 ### Block Number
 
 The block number is the only integer feature.
 
 ### Solidity Sources
+
+The sources all have open source licenses.
+They were collected from block explorer APIs like [Etherscan][etherscan-api].
 
 The sources are formatted as [standard JSON input][solidity-docs-json] for the solidity compiler.
 
@@ -65,6 +68,7 @@ For example:
     'solidity_sourcecode': b'',}
 ```
 
+[etherscan-api]: https://docs.etherscan.io/api-endpoints/contracts
 [github-project]: https://github.com/apehex/feedblocks/
 [github-tfds]: https://github.com/apehex/feedblocks/tree/main/feedblocks/datasets/evmc
 [solidity-docs-json]: https://docs.soliditylang.org/en/v0.8.26/using-the-compiler.html#compiler-input-and-output-json-description

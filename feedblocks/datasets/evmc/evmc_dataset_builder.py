@@ -11,13 +11,13 @@ import feedblocks.data as fd
 class Evmc(tfds.core.GeneratorBasedBuilder):
     """DatasetBuilder for the EVMC dataset."""
 
-    VERSION = tfds.core.Version('0.1.0')
-    RELEASE_NOTES = {'0.1.0': 'Initial release.',}
+    VERSION = tfds.core.Version('0.1.1')
+    RELEASE_NOTES = {'0.1.0': 'Initial release', '0.1.1': 'Blocks 19493000 to 20292000'}
 
     def __init__(self, **kwargs) -> None:
         super(Evmc, self).__init__(**kwargs)
         self._datasets = {
-            __chain: fd.load(chain=__chain, dataset='contracts', path='../../../data/{chain}/{dataset}/')
+            __chain: fd.load(chain=__chain, dataset='contracts', path='../../../data/{chain}/{dataset}/', schema=fd.OUTPUT_SCHEMA)
             for __chain in ['ethereum']}
 
     def _info(self) -> tfds.core.DatasetInfo:
