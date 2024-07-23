@@ -181,7 +181,7 @@ def add_solidity_sources_to_batch(
         # save data
         __batch.append(__r)
     # log stats
-    logging.info('{ok: >4} / {missing: >4} / {skipped: >4} / {errors: >4} (ok, missing, skipped, errors)'.format(**__stats))
+    logging.info('   | {ok: >3} | {missing: >3} | {skipped: >3} | {errors: >3} |'.format(**__stats))
     # format as pyarrow table
     return __batch
 
@@ -197,7 +197,6 @@ def add_solidity_sources_to_table(
     __total = max(0, len(__batches) - 1)
     # iterate
     for __i, __b in enumerate(__batches):
-        logging.info('batch {} / {}'.format(__i, __total))
         __table.extend(add_solidity_sources_to_batch(
             batch=__b,
             get=get,
@@ -218,7 +217,7 @@ def add_solidity_sources_to_dataset(
         __table = __fragment.to_table(schema=dataset.schema)
         # fetch solidity sources
         if _is_table_update_required(table=__table, force_update_empty_records=force_update_empty_records, force_update_filled_records=force_update_filled_records):
-            logging.info('scraping {}...'.format(os.path.basename(__fragment.path)))
+            logging.info('[ SCRAPE ] [ {path} ] {rows} records...'.format(rows=__table.num_rows, path=__fragment.path))
             # scrape
             __table = add_solidity_sources_to_table(
                 table=__table,
@@ -231,8 +230,8 @@ def add_solidity_sources_to_dataset(
             if os.path.isfile(__fragment.path + '_'):
                 try:
                     os.replace(__fragment.path + '_', __fragment.path)
-                    logging.info('=> updated {}'.format(__fragment.path))
+                    logging.info('[ UPDATE ] [ {} ] replaced'.format(__fragment.path))
                 except Exception:
-                    logging.warning('failed to replace {}'.format(__fragment.path))
+                    logging.warning('[ UPDATE ] [ {} ] failed to replace the file'.format(__fragment.path))
         else:
-            logging.info('skipped {}'.format(os.path.basename(__fragment.path)))
+            logging.info('[   SKIP ] [ {} ]'.format(__fragment.path))

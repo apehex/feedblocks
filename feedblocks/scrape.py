@@ -45,8 +45,9 @@ def pace(freq: float, backoff: float=1.0, limit: int=4) -> callable:
                     # increase waiting time
                     __prev += __attempts * backoff
                     # log args + error
-                    logging.warning(f'attempt {__attempts} failed: f({args} + {kwargs}) => error "{str(__e)}"')
+                    logging.debug(f'attempt {__attempts} failed: f({args} + {kwargs}) => error "{str(__e)}"')
             # run out of attempts
+            logging.warning(f'all attempts failed: f({args} + {kwargs}) => error "{str(__e)}"')
             return None
         # return the wrapped function
         return __wrapper
