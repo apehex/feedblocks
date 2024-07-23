@@ -180,9 +180,8 @@ def add_solidity_sources_to_batch(
         _update_stats(record=__r, stats=__stats, updated=__update_required)
         # save data
         __batch.append(__r)
-    # log
-    for __k, __v, in __stats.items():
-        logging.info('{label}: {count}'.format(label=__k, count=__v))
+    # log stats
+    logging.info('{ok: >4} / {missing: >4} / {skipped: >4} / {errors: >4} (ok, missing, skipped, errors)'.format(**__stats))
     # format as pyarrow table
     return __batch
 
