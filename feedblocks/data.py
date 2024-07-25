@@ -194,9 +194,8 @@ def add_solidity_sources_to_table(
     # iterate on parquet files / table
     __table = []
     __batches = list(table.to_batches(max_chunksize=128))
-    __total = max(0, len(__batches) - 1)
     # iterate
-    for __i, __b in enumerate(__batches):
+    for __b in __batches:
         __table.extend(add_solidity_sources_to_batch(
             batch=__b,
             get=get,
