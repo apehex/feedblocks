@@ -46,6 +46,8 @@ def main() -> None:
         __input_dataset = fd.reformat_dataset(dataset=__input_dataset, tempdir=__tmp, mapping=fd.MAPPING)
         # merge the new scraped data with the current dataset
         __output_dataset = fd.merge_datasets(source=__input_dataset, destination=__output_dataset)
+    # split the larger file fragments
+    fd.split_dataset(dataset=__output_dataset)
     # scrape the solidity sources
     fd.add_solidity_sources_to_dataset(dataset=__output_dataset, get=__get, force_update_empty_records=False, force_update_filled_records=False)
     # reload the dataset with sources

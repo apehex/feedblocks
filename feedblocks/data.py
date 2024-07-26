@@ -82,10 +82,10 @@ def merge_datasets(source: pq.ParquetDataset, destination: pq.ParquetDataset) ->
 
 def parse_fragment_path(path: str) -> dict:
     __result = {}
-    __regex = re.compile(r'(\w+)__(\w+)__(\d+)_to_(\d+).parquet')
+    __regex = re.compile(r'(\d{8})_to_(\d{8}).parquet')
     __match = re.findall(pattern=__regex, string=os.path.basename(path))
-    if __match and len(__match[0]) == 4:
-        __result = {'chain': __match[0][0], 'dataset': __match[0][1], 'first_block': int(__match[0][2]), 'last_block': int(__match[0][-1])}
+    if __match and len(__match[0]) == 2:
+        __result = {'first_block': int(__match[0][0]), 'last_block': int(__match[0][-1])}
     return __result
 
 def compose_dataset_path(root: str='data', chain: str='ethereum', dataset: str='contracts') -> str:
@@ -93,6 +93,39 @@ def compose_dataset_path(root: str='data', chain: str='ethereum', dataset: str='
 
 def compose_fragment_path(first_block: int, last_block: int, dataset_path: str='data/ethereum/contracts/') -> str:
     return os.path.join(dataset_path, '{}_to_{}.parquet'.format(first_block, last_block))
+
+def split_fragment(fragment: pq.ParquetFile, chunk: int=100) -> None:
+    __dir = os.path.dirname(fragment.path)
+    __name = os.path.basename(fragment.path)
+    # parse the fragment metadata
+    __meta = parse_fragment_path(path=__name)
+    # load the data
+    __table = fragment.to_table()
+    if __meta:
+        # split the range of block numbers
+        __range = list(range(__meta['first_block'], __meta['last_block'] + 2, chunk))
+        __splits = list(zip(__range, __range[1:]))
+        # iterate over the splits
+        for __s in __splits:
+            # filter the original table
+            __section = __table.filter(pc.field('block_number') >= __s[0]).filter(pc.field('block_number') < __s[-1])
+            # output path
+            __path = os.path.join(__dir, '{}_to_{}.parquet'.format(__s[0], __s[-1] - 1))
+            # export the section
+            pq.write_table(__section, where=__path)
+            # log
+            logging.info(__path)
+
+def split_dataset(dataset: pq.ParquetDataset) -> None:
+    for __fragment in dataset.fragments:
+        __size = os.path.getsize(__fragment.path) / (1024 ** 2)
+        if __size > 16.:
+            # log
+            logging.info('[  SPLIT ] [ {path} ] {size} MB...'.format(path=__fragment.path, size=int(__size)))
+            # chunk
+            split_fragment(fragment=__fragment)
+            # remove the original file
+            os.remove(__fragment.path)
 
 def tidy(path: str='data') -> None:
     __files = [__p.split('__') for __p in os.listdir(path) if os.path.isfile(os.path.join(path, __p))]
