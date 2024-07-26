@@ -127,17 +127,6 @@ def split_dataset(dataset: pq.ParquetDataset) -> None:
             # remove the original file
             os.remove(__fragment.path)
 
-def tidy(path: str='data') -> None:
-    __files = [__p.split('__') for __p in os.listdir(path) if os.path.isfile(os.path.join(path, __p))]
-    for __f in __files:
-        __old = os.path.join(path, '__'.join(__f))
-        __new = os.path.join(path, *__f)
-        try:
-            os.rename(__old, __new)
-            logging.info('{} => {}'.format(__old, __new))
-        except Exception:
-            logging.debug('failed to move {}'.format(__old))
-
 # IO ##########################################################################
 
 DATA_PATH = 'data/{chain}/{dataset}/'

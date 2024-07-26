@@ -18,11 +18,13 @@ def main() -> None:
     fl.setup_logger(level=20, offset=-10, tabs=4)
     # CLI args
     __parser = argparse.ArgumentParser(description='Scrape blockchain data and solidify in a dataset.')
-    __parser.add_argument('--path', '-p', action='store', dest='out_path', type=str, default='data/ethereum/contracts/', help='the path to the final dataset')
+    __parser.add_argument('--output', '-o', action='store', dest='out_path', type=str, default='data/ethereum/contracts/', help='the path to the final dataset')
     __parser.add_argument('--exp-key', '-k', action='store', dest='exp_key', type=str, default=fs.ETH_API_KEY, help='a key for a blockchain explorer API to scrape sources')
     __parser.add_argument('--exp-lim', '-l', action='store', dest='exp_lim', type=float, default=fs.RATE_LIMIT_ETHERSCAN, help='the rate limit (freq) of API requests')
     __parser.add_argument('--exp-url', '-u', action='store', dest='exp_url', type=str, default=fs.ETH_API_URL, help='a URL to the blockchain explorer API endpoint')
-    __parser.add_argument('--import', '-i', action='store', dest='in_path', type=str, default='', help='path to newly scraped data')
+    __parser.add_argument('--scrape', '-s', action='store_true', dest='scrape', default=False, help='toggle source code scraping')
+    __parser.add_argument('--chunk', '-c', action='store_true', dest='chunk', default=False, help='split the large datasets fragments')
+    __parser.add_argument('--input', '-i', action='store', dest='in_path', type=str, default='', help='path to newly scraped data')
     __parser.add_argument('--rpc-url', '-r', action='store', dest='rpc_url', type=str, default='', help='the RPC endpoint used to scrape blockchain data')
     __parser.add_argument('--tmp-dir', '-t', action='store', dest='tmp_path', type=str, default='', help='temporary directory to store intermediate results')
     # parse
@@ -47,11 +49,11 @@ def main() -> None:
         # merge the new scraped data with the current dataset
         __output_dataset = fd.merge_datasets(source=__input_dataset, destination=__output_dataset)
     # split the larger file fragments
-    fd.split_dataset(dataset=__output_dataset)
+    if __args.get('chunk', False):
+        fd.split_dataset(dataset=__output_dataset)
     # scrape the solidity sources
-    fd.add_solidity_sources_to_dataset(dataset=__output_dataset, get=__get, force_update_empty_records=False, force_update_filled_records=False)
-    # reload the dataset with sources
-    __dataset = fd.load(chain='ethereum', dataset='contracts')
+    if __args.get('scrape', False):
+        fd.add_solidity_sources_to_dataset(dataset=__output_dataset, get=__get, force_update_empty_records=False, force_update_filled_records=False)
 
 # MAIN ########################################################################
 
