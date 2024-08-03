@@ -13,7 +13,7 @@ import feedblocks.scrape as fs
 
 MAPPING = {
     pl.field('chain_id', pa.uint64()): pl.field('chain_id', pa.uint64()),
-    pl.field('block_number', pa.uint32()): pl.field('block_number', pa.uint32()),
+    pl.field('block_number', pa.uint32()): pl.field('block_number', pa.uint64()),
     pl.field('block_hash', pa.large_binary()): pl.field('block_hash', pa.large_binary()),
     pl.field('transaction_hash', pa.large_binary()): pl.field('transaction_hash', pa.large_binary()),
     pl.field('deployer', pa.large_binary()): pl.field('deployer_address', pa.large_binary()),
@@ -30,15 +30,21 @@ OUTPUT_SCHEMA = pa.schema(fields=[__k for __k in MAPPING.values() if __k is not 
 
 def reformat_table(table: pa.Table, mapping: dict=MAPPING) -> pa.Table:
     # don't rename columns that will be removed
-    __rename = {__k.name: __v.name for __k, __v in mapping.items() if __k is not None}
-    __remove = [table.field(__i).name for __i in range(table.num_columns) if table.field(__i) not in mapping]
-    __add = pa.nulls(size=table.num_rows, type=pa.large_binary())
+    __nulls = pa.nulls(size=table.num_rows, type=pa.large_binary())
+    __rename = {__k.name: __v.name for __k, __v in mapping.items() if __k is not None and __k.name != __v.name}
+    __remove = [__f.name for __f in table.schema if __f not in mapping]
+    __schema = pa.schema(fields=[mapping[__f] for __f in table.schema if __f in mapping]) # same order as original schema
     # actually rename
     __table = table.rename_columns(names=__rename)
     # remove the columns
     __table = __table.drop_columns(columns=__remove)
+    # cast to the target datatypes
+    __table = __table.cast(target_schema=__schema)
     # add the column for source code data
-    return __table.append_column(field_=mapping[None], column=__add)
+    if None in mapping:
+        __table = __table.append_column(field_=mapping[None], column=__nulls)
+    # return
+    return __table
 
 def reformat_dataset(dataset: pq.ParquetDataset, tempdir: str, mapping: dict=MAPPING) -> pq.ParquetDataset:
     logging.info('reformatting...')
