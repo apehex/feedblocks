@@ -7,15 +7,30 @@ Scrape, clean and solidify blockchain data.
 Blockchain transactions:
 
 ```shell
-. .env
 cryo contracts -a -r "$ETH_RPC_URL" -l 9 -b 19393000:19494000 -o data/ -s 'block_number' --no-report
 ```
 
 Source code:
 
 ```shell
-. .env
-python feedblocks/main.py --eth-key 'AAAAAAAA' --eth-url 'https://api.etherscan.io/api?module=contract&action=getsourcecode&address={address}&apikey={key}' --path 'data/ethereum/contracts/'
+python feedblocks/main.py --scrape --eth-key 'AAAAAAAA' --eth-url 'https://api.etherscan.io/api?module=contract&action=getsourcecode&address={address}&apikey={key}' --output 'data/ethereum/contracts/'
+python feedblocks/main.py -s -k 'AAAAAAAA' -u 'https://api.etherscan.io/api?module=contract&action=getsourcecode&address={address}&apikey={key}' -o 'data/ethereum/contracts/'
+```
+
+## Data Indexing
+
+Import the data scraped by `cryo`:
+
+```shell
+python feedblocks/main.py --input '/mnt/data/' --output 'data/ethereum/contracts/'
+python feedblocks/main.py -i '/mnt/data/' -o 'data/ethereum/contracts/'
+```
+
+Split the large table fragments:
+
+```shell
+python feedblocks/main.py --chunk
+python feedblocks/main.py -c
 ```
 
 ## Data Augmentation
