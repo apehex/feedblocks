@@ -36,7 +36,7 @@ python feedblocks/main.py -c
 ## Data Augmentation
 
 ```shell
-docker run ethereum/solc:stable --standard-json < input.json > output.json
+docker run -i ethereum/solc:stable --standard-json < input.json > output.json
 ```
 
 ## Final Datasets
